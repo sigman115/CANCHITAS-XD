@@ -291,7 +291,9 @@
       const claves = Object.keys(os);
       const r = {
         n: i + 1, ...c, pid, leido: res.error ? null : res.r, error: res.error || null, avisos: res.avisos || [],
-        estado: evaluar(c, res, pid), oscuro: os,
+        estado: evaluar(c, res, pid), oscuro: os, dudosos: res.dudosos || [],
+        // ¿La cámara la registraría sola? Solo si no hay error, avisos ni círculos dudosos
+        auto: !res.error && !(res.avisos || []).length && !(res.dudosos || []).length,
         rellenoMin: rellenos.length && claves.length ? Math.min(...rellenos.map((k) => os[k])) : null,
         vacioMax: claves.length ? Math.max(0, ...claves.filter((k) => !rellenos.includes(k)).map((k) => os[k])) : null,
         ms: Math.round(performance.now() - t0), foto: miniatura(canvas), vista: res.vista || ''

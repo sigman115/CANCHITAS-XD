@@ -5,8 +5,12 @@
   const { esc, icon } = RM;
 
   // escaneos: resultados de lectura en memoria (no se guardan hasta confirmar)
-  // camara: transmisión en vivo para tomar fotos sin salir de la pestaña
-  const ui = { j: 0, excluir: new Set(), preview: null, escaneos: [], procesando: false, camara: { stream: null, error: '', qr: false } };
+  // camara: transmisión en vivo; auto = registrar solas las lecturas claras;
+  // visto = QR visto en los últimos cuadros; ultima = planilla ya leída que sigue frente a la cámara
+  const ui = {
+    j: 0, excluir: new Set(), preview: null, escaneos: [], procesando: false,
+    camara: { stream: null, error: '', auto: true, aviso: null, visto: { pid: null, veces: 0 }, ultima: null }
+  };
   const estado = () => RM.store.state;
 
   const ETIQUETA = { '2-0': '2-0', '2-1': '2-1', '1-2': '1-2', '0-2': '0-2', woA: 'W.O. (no vino A)', woB: 'W.O. (no vino B)', woAB: 'W.O. (no vino ninguno)' };
@@ -115,18 +119,32 @@
     return `<button class="btn primary" type="button" data-act="camara">${icon('camera')} Tomar foto</button>`;
   }
 
+  /*
+    Aviso sobre el video. tipo: 'buscar' (sin QR), 'ok' (QR visto o lectura registrada, verde)
+    o 'revisar' (la lectura quedó abajo para confirmar, naranja).
+  */
+  const AVISO_BUSCAR = { tipo: 'buscar', texto: 'Encuadra el recuadro RESULTADO FINAL dentro de la guía' };
+
+  function avisoHTML(a) {
+    return `${a.tipo === 'ok' ? icon('check') : a.tipo === 'revisar' ? icon('alert') : ''} ${esc(a.texto)}`;
+  }
+
   function camaraHTML() {
+    const a = ui.camara.aviso;
     return `<div class="cam">
-      <div class="cam-view ${ui.camara.qr ? 'ok' : ''}">
+      <div class="cam-view ${a.tipo === 'buscar' ? '' : a.tipo === 'ok' ? 'ok' : 'warn'}">
         <video playsinline muted aria-label="Vista de la cámara"></video>
         <span class="cam-guia" aria-hidden="true"></span>
-        <p class="cam-estado" role="status">${ui.camara.qr ? `${icon('check')} QR detectado: ya puedes capturar` : 'Encuadra el recuadro RESULTADO FINAL dentro de la guía'}</p>
+        <p class="cam-estado" role="status">${avisoHTML(a)}</p>
       </div>
+      <label class="cam-auto"><input type="checkbox" data-act="auto" ${ui.camara.auto ? 'checked' : ''}> Registrar automáticamente las lecturas claras</label>
       <div class="form-actions">
-        <button class="btn primary" type="button" data-act="capturar" ${ui.procesando ? 'disabled' : ''}>${icon('camera')} ${ui.procesando ? 'Leyendo…' : 'Capturar'}</button>
+        <button class="btn ${ui.camara.auto ? '' : 'primary'}" type="button" data-act="capturar" ${ui.procesando ? 'disabled' : ''}>${icon('camera')} ${ui.procesando ? 'Leyendo…' : ui.camara.auto ? 'Capturar ahora' : 'Capturar'}</button>
         <button class="btn" type="button" data-act="cerrarCamara">Cerrar cámara</button>
       </div>
-      <p class="hint">Sostén el celular de frente, con buena luz y sin sombras sobre los círculos. Después de capturar, la cámara sigue abierta para la siguiente planilla.</p>
+      <p class="hint">${ui.camara.auto
+        ? 'Pon cada planilla frente a la cámara y mantenla quieta un momento: se lee y se registra sola. Si algún círculo quedó dudoso, o el partido ya tenía otro resultado, queda abajo para que lo revises.'
+        : 'Encuadra la planilla y presiona Capturar. Revisa la lectura abajo y guárdala.'} Usa buena luz y evita sombras sobre los círculos.</p>
     </div>`;
   }
 
@@ -145,15 +163,25 @@
         : e.name === 'NotReadableError' ? 'La cámara está siendo usada por otra aplicación. Ciérrala e intenta de nuevo.'
         : 'No se pudo abrir la cámara: ' + e.message;
     }
-    ui.camara.qr = false;
+    ui.camara.aviso = AVISO_BUSCAR;
+    ui.camara.visto = { pid: null, veces: 0 };
+    ui.camara.ultima = null;
     RM.app.render();
   }
 
   function cerrarCamara() {
     if (ui.camara.stream) ui.camara.stream.getTracks().forEach((t) => t.stop());
     ui.camara.stream = null;
-    ui.camara.qr = false;
+    ui.camara.aviso = AVISO_BUSCAR;
     clearInterval(ui.camara.vigia);
+  }
+
+  // Cambia solo el aviso del visor, sin redibujar la vista (el video tendría que reconectarse)
+  function avisar(a) {
+    ui.camara.aviso = a;
+    const vista = RM.$('.cam-view'), estado = RM.$('.cam-estado');
+    if (vista) { vista.classList.toggle('ok', a.tipo === 'ok'); vista.classList.toggle('warn', a.tipo === 'revisar'); }
+    if (estado) estado.innerHTML = avisoHTML(a);
   }
 
   // Cada render crea un <video> nuevo: se le vuelve a conectar la transmisión y se vigila el QR
@@ -167,38 +195,59 @@
     video.play().catch(() => { /* se reproduce cuando el navegador lo permita */ });
     clearInterval(ui.camara.vigia);
     const muestra = document.createElement('canvas');
-    ui.camara.vigia = setInterval(() => {
-      // Si se cambió de pestaña el video ya no está en la página: se apaga la cámara
-      if (!video.isConnected) { cerrarCamara(); return; }
-      if (!video.videoWidth) return;
-      const k = Math.min(1, 640 / video.videoWidth);
-      muestra.width = Math.round(video.videoWidth * k);
-      muestra.height = Math.round(video.videoHeight * k);
-      const ctx = muestra.getContext('2d', { willReadFrequently: true });
-      ctx.drawImage(video, 0, 0, muestra.width, muestra.height);
-      const lectura = window.jsQR(ctx.getImageData(0, 0, muestra.width, muestra.height).data, muestra.width, muestra.height, { inversionAttempts: 'dontInvert' });
-      const qr = !!(lectura && RM.planilla.leerTextoQR(lectura.data));
-      if (qr !== ui.camara.qr) {
-        // Solo se actualiza el aviso, sin redibujar la vista (el video seguiría reconectándose)
-        ui.camara.qr = qr;
-        const vista = RM.$('.cam-view', el), estado = RM.$('.cam-estado', el);
-        if (vista) vista.classList.toggle('ok', qr);
-        if (estado) estado.innerHTML = qr ? `${icon('check')} QR detectado: ya puedes capturar` : 'Encuadra el recuadro RESULTADO FINAL dentro de la guía';
-      }
-    }, 400);
+    ui.camara.vigia = setInterval(() => vigilar(video, muestra), 300);
+  }
+
+  /*
+    Cada 0,3 s busca el QR en una copia pequeña del video.
+    - Con registro automático, cuando ve el mismo QR dos veces seguidas (la hoja está quieta)
+      captura sola en resolución completa.
+    - La última planilla leída no se vuelve a capturar mientras siga frente a la cámara;
+      si se saca de la vista por más de 1,5 s, se puede volver a leer.
+  */
+  function vigilar(video, muestra) {
+    // Si se cambió de pestaña el video ya no está en la página: se apaga la cámara
+    if (!video.isConnected) { cerrarCamara(); return; }
+    if (!video.videoWidth || ui.procesando) return;
+    const k = Math.min(1, 640 / video.videoWidth);
+    muestra.width = Math.round(video.videoWidth * k);
+    muestra.height = Math.round(video.videoHeight * k);
+    const ctx = muestra.getContext('2d', { willReadFrequently: true });
+    ctx.drawImage(video, 0, 0, muestra.width, muestra.height);
+    const lectura = window.jsQR(ctx.getImageData(0, 0, muestra.width, muestra.height).data, muestra.width, muestra.height, { inversionAttempts: 'dontInvert' });
+    const info = lectura ? RM.planilla.leerTextoQR(lectura.data) : null;
+    const cam = ui.camara, ahora = Date.now();
+
+    if (!info) {
+      cam.visto = { pid: null, veces: 0 };
+      if (cam.ultima && ahora - cam.ultima.vista > 1500) cam.ultima = null;
+      if (!cam.ultima && cam.aviso.tipo !== 'buscar') avisar(AVISO_BUSCAR);
+      return;
+    }
+    if (cam.ultima && cam.ultima.pid === info.pid) {
+      cam.ultima.vista = ahora; // sigue la misma hoja: se mantiene el aviso de su lectura
+      return;
+    }
+    cam.visto = cam.visto.pid === info.pid ? { pid: info.pid, veces: cam.visto.veces + 1 } : { pid: info.pid, veces: 1 };
+    if (!cam.auto) { avisar({ tipo: 'ok', texto: 'QR detectado: ya puedes capturar' }); return; }
+    if (cam.visto.veces < 2) { avisar({ tipo: 'ok', texto: 'QR detectado: mantén la hoja quieta…' }); return; }
+    avisar({ tipo: 'ok', texto: 'Leyendo la planilla…' });
+    capturar();
   }
 
   // Toma el cuadro actual en resolución completa y lo procesa igual que una foto subida
   function capturar() {
     const video = RM.$('.cam video');
     if (!video || !video.videoWidth || ui.procesando) return;
+    ui.procesando = true; // evita una segunda captura mientras se arma la imagen
     const c = document.createElement('canvas');
     c.width = video.videoWidth;
     c.height = video.videoHeight;
     c.getContext('2d').drawImage(video, 0, 0);
     const hora = new Date().toTimeString().slice(0, 8).replace(/:/g, '-');
     c.toBlob((blob) => {
-      if (blob) procesar([new File([blob], `camara-${hora}.jpg`, { type: 'image/jpeg' })]);
+      ui.procesando = false;
+      if (blob) procesar([new File([blob], `camara-${hora}.jpg`, { type: 'image/jpeg' })], { camara: true });
     }, 'image/jpeg', 0.92);
   }
 
@@ -290,22 +339,28 @@
         ${encontrado ? `<b>${cat ? esc(cat.nombre) + ' · ' : ''}${A} <i>vs</i> ${B}</b>` : ''}
         ${x.error ? `<p class="scan-msg">${icon('alert')} ${esc(x.error)}</p>` : ''}
         ${(x.avisos || []).map((a) => `<p class="scan-msg">${icon('alert')} ${esc(a)}</p>`).join('')}
+        ${!x.error && !x.guardado && (x.dudosos || []).length ? `<p class="scan-msg">${icon('alert')} Círculo${x.dudosos.length > 1 ? 's' : ''} poco marcado${x.dudosos.length > 1 ? 's' : ''}: ${x.dudosos.map(RM.planilla.nombreCirculo).join(', ')}. Mira la imagen y confirma el resultado.</p>` : ''}
         ${previo && x.r && previo.r !== x.r && !x.guardado ? `<p class="scan-msg">${icon('alert')} Ya tenía cargado ${ETIQUETA[previo.r]}: se reemplazará.</p>` : ''}
+        ${x.guardado ? `<p class="scan-ok">${icon('check')} ${x.repetido ? 'Ya estaba registrado con este resultado' : x.auto ? 'Registrado automáticamente' : 'Guardado'}</p>` : ''}
         ${encontrado ? `<div class="scan-actions">
             <select class="input sm" data-scan="${i}" aria-label="Resultado detectado (puedes corregirlo)"><option value="">Elegir resultado…</option>${opciones}</select>
-            <button class="btn primary sm" type="button" data-guardar="${i}" ${x.r ? '' : 'disabled'}>${x.guardado ? `${icon('check')} Guardado` : 'Guardar'}</button>
+            ${x.guardado && !x.repetido
+              ? `<button class="btn sm" type="button" data-deshacer="${i}">Deshacer</button>`
+              : `<button class="btn primary sm" type="button" data-guardar="${i}" ${x.r && !x.guardado ? '' : 'disabled'}>${x.guardado ? `${icon('check')} Guardado` : 'Guardar'}</button>`}
           </div>` : ''}
       </div>
     </li>`;
   }
 
-  async function procesar(archivos) {
+  // opts.camara: la imagen viene de la cámara (se registra sola si la lectura es clara y está activado)
+  async function procesar(archivos, opts = {}) {
     ui.procesando = true;
     RM.app.render();
     for (const f of archivos) {
       let res;
       try { res = await RM.planilla.escanear(f); } catch (e) { res = { error: e.message }; }
       res.archivo = f.name;
+      const qrVisto = res.pid;
       if (res.pid) {
         const enc = buscarPartido(res.pid);
         if (!enc) { res.error = 'Esta planilla no corresponde a ningún partido del fixture actual.'; res.pid = null; }
@@ -313,26 +368,93 @@
       }
       res.listo = !!(res.pid && res.r && !res.error);
       ui.escaneos.unshift(res);
+      if (opts.camara) {
+        // Aunque la lectura falle, esa hoja no se vuelve a capturar mientras siga frente a la cámara
+        ui.camara.ultima = { pid: qrVisto || ui.camara.visto.pid, vista: Date.now() };
+        ui.camara.aviso = ui.camara.auto ? registrarSiEsClara(res) : { tipo: res.listo ? 'ok' : 'revisar', texto: res.listo ? `Leído: ${ETIQUETA[res.r]}. Revisa abajo y guárdalo` : 'Revisa la lectura abajo' };
+      }
       RM.app.render();
     }
     ui.procesando = false;
     RM.app.render();
-    const ok = ui.escaneos.filter((x) => x.listo).length;
-    RM.toast(`${archivos.length} imagen(es) leída(s) · ${ok} lista(s) para guardar`);
+    if (!opts.camara) {
+      const ok = ui.escaneos.filter((x) => x.listo).length;
+      RM.toast(`${archivos.length} imagen(es) leída(s) · ${ok} lista(s) para guardar`);
+    }
+  }
+
+  /*
+    Registro automático (solo desde la cámara). Se guarda sola únicamente una lectura clara:
+    sin errores, sin avisos, sin círculos dudosos y sin pisar un resultado distinto ya cargado.
+    Todo lo demás queda en la lista para que una persona lo confirme. Devuelve el aviso del visor.
+  */
+  function registrarSiEsClara(x) {
+    const enc = x.pid ? buscarPartido(x.pid) : null;
+    const nombre = enc ? `${RM.q.nombrePorNumero(enc.catId, enc.p.a)} vs ${RM.q.nombrePorNumero(enc.catId, enc.p.b)}` : '';
+    // El navegador solo deja vibrar si la persona ya tocó la página (al tocar "Tomar foto")
+    const vibrar = (patron) => {
+      const toco = !navigator.userActivation || navigator.userActivation.hasBeenActive;
+      if (navigator.vibrate && toco) navigator.vibrate(patron);
+    };
+    if (!x.listo) {
+      vibrar([60, 60, 60]);
+      return { tipo: 'revisar', texto: x.error ? 'No se pudo leer: revisa abajo' : 'Revisa la lectura abajo' };
+    }
+    const previo = RM.tabla.resultadoDe(estado(), enc.p);
+    const motivo = (x.avisos || []).length ? 'tiene avisos'
+      : (x.dudosos || []).length ? 'hay círculos poco marcados'
+      : previo && previo.r !== x.r ? `ya tenía ${ETIQUETA[previo.r]}` : '';
+    if (motivo) {
+      vibrar([60, 60, 60]);
+      return { tipo: 'revisar', texto: `${ETIQUETA[x.r]}: no se registró porque ${motivo}. Revisa abajo` };
+    }
+    if (previo) {
+      // Ya estaba guardado el mismo resultado: no hay nada que cambiar
+      x.guardado = true;
+      x.listo = false;
+      x.repetido = true;
+      return { tipo: 'ok', texto: `Ya estaba registrado: ${nombre} ${ETIQUETA[x.r]}` };
+    }
+    registrar([x], true);
+    vibrar(120);
+    return { tipo: 'ok', texto: `Registrado: ${nombre} ${ETIQUETA[x.r]}` };
+  }
+
+  // Guarda las lecturas en los resultados; recuerda el resultado anterior para poder deshacer
+  function registrar(lista, auto) {
+    RM.store.commit((st) => {
+      lista.forEach((x) => {
+        const enc = buscarPartido(x.pid);
+        if (!enc) return;
+        x.anterior = st.resultados[x.pid] ? { ...st.resultados[x.pid] } : null;
+        st.resultados[x.pid] = { catId: enc.catId, a: enc.p.a, b: enc.p.b, r: x.r };
+        x.guardado = true;
+        x.auto = !!auto;
+        x.listo = false;
+      });
+    }, { silent: true });
   }
 
   function guardar(indices) {
     const validos = indices.map((i) => ui.escaneos[i]).filter((x) => x && x.pid && x.r && !x.guardado);
     if (!validos.length) return;
-    RM.store.commit((st) => {
-      validos.forEach((x) => {
-        const enc = buscarPartido(x.pid);
-        if (enc) st.resultados[x.pid] = { catId: enc.catId, a: enc.p.a, b: enc.p.b, r: x.r };
-        x.guardado = true;
-        x.listo = false;
-      });
-    });
+    registrar(validos, false);
+    RM.app.render();
     RM.toast(`${validos.length} resultado(s) guardado(s)`);
+  }
+
+  function deshacer(i) {
+    const x = ui.escaneos[i];
+    if (!x || !x.guardado || x.repetido) return;
+    RM.store.commit((st) => {
+      if (x.anterior) st.resultados[x.pid] = x.anterior;
+      else delete st.resultados[x.pid];
+    }, { silent: true });
+    x.guardado = false;
+    x.auto = false;
+    x.listo = true;
+    RM.app.render();
+    RM.toast('Se deshizo el registro');
   }
 
   function bind(el) {
@@ -356,7 +478,9 @@
     if (act && act.dataset.act === 'capturar') { capturar(); return; }
     if (act && act.dataset.act === 'cerrarCamara') { cerrarCamara(); RM.app.render(); return; }
     const g = t.closest('[data-guardar]');
-    if (g && !g.disabled) guardar([+g.dataset.guardar]);
+    if (g && !g.disabled) { guardar([+g.dataset.guardar]); return; }
+    const d = t.closest('[data-deshacer]');
+    if (d) deshacer(+d.dataset.deshacer);
   }
 
   function onChange(e) {
@@ -366,6 +490,10 @@
       RM.app.render();
     } else if (t.dataset.act === 'archivos' && t.files.length) {
       procesar(Array.from(t.files));
+    } else if (t.dataset.act === 'auto') {
+      ui.camara.auto = t.checked;
+      ui.camara.aviso = AVISO_BUSCAR;
+      RM.app.render();
     } else if (t.dataset.scan) {
       const x = ui.escaneos[+t.dataset.scan];
       x.r = t.value;

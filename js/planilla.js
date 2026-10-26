@@ -113,6 +113,17 @@
   }
 
   const UMBRAL = 0.3; // fracción de oscurecimiento respecto del papel para considerar "rellenado"
+  /*
+    Franja de duda alrededor del umbral (20 % a 40 %). Con bolígrafo, un círculo relleno queda
+    entre 75 % y 90 % y uno vacío por debajo de 15 % (ver pruebas/escaneo.html); en la franja
+    caen las marcas a medias, las X o el lápiz muy suave. La lectura puede estar bien, pero
+    no se registra sola: la confirma una persona.
+  */
+  const MARGEN = 0.1;
+  const dudosos = (oscuro) => Object.keys(oscuro || {}).filter((k) => Math.abs(oscuro[k] - UMBRAL) < MARGEN);
+
+  // Nombre de un círculo para mostrarlo: a1 → "A 1", woB → "W.O. B"
+  const nombreCirculo = (k) => (k.startsWith('wo') ? 'W.O. ' + k[2] : k[0].toUpperCase() + ' ' + k[1]);
 
   function decidir(lleno) {
     const fila = (p) => ['0', '1', '2'].filter((d) => lleno[p + d]).map(Number);
@@ -164,7 +175,7 @@
     });
 
     const vista = recorte(base.c, aImg, lleno);
-    return { ...info, ...decidir(lleno), oscuro, vista };
+    return { ...info, ...decidir(lleno), oscuro, dudosos: dudosos(oscuro), vista };
   }
 
   // Imagen pequeña de la zona leída, con los círculos detectados marcados
@@ -191,5 +202,5 @@
     return out.toDataURL('image/jpeg', 0.8);
   }
 
-  RM.planilla = { LAYOUT, UMBRAL, textoQR, leerTextoQR, qrSVG, homografia, escanear, decidir };
+  RM.planilla = { LAYOUT, UMBRAL, MARGEN, textoQR, leerTextoQR, qrSVG, homografia, escanear, decidir, dudosos, nombreCirculo };
 })();

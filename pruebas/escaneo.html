@@ -44,11 +44,13 @@
   <p class="intro">Cada fila es una foto sintética de una planilla llena, leída con el mismo código que usa la pestaña Planillas.
     <b>ok</b>: hizo lo que debía · <b>rechazado</b>: pidió revisión a mano en una foto que debía leer ·
     <b>MAL</b>: leyó un resultado distinto sin avisar (el único error grave: metería un dato falso en la tabla).
-    La columna <i>oscuridad</i> compara el relleno más claro y el círculo vacío más oscuro con el umbral del lector.</p>
+    La columna <i>oscuridad</i> compara el relleno más claro y el círculo vacío más oscuro con el umbral del lector.
+    <i>Se registra sola</i> indica si la cámara la guardaría sin confirmación (sin errores, avisos ni círculos dudosos);
+    si no, queda en la lista para que una persona la revise.</p>
   <div class="resumen" id="resumen"></div>
   <div class="veredicto" id="veredicto">Generando y leyendo planillas…</div>
   <div class="tabla"><table>
-    <thead><tr><th>#</th><th>Caso</th><th>Debe</th><th>Esperado</th><th>Leído</th><th>Estado</th><th>Oscuridad</th><th>Foto</th><th>Lo que vio el lector</th></tr></thead>
+    <thead><tr><th>#</th><th>Caso</th><th>Debe</th><th>Esperado</th><th>Leído</th><th>Estado</th><th>Se registra sola</th><th>Oscuridad</th><th>Foto</th><th>Lo que vio el lector</th></tr></thead>
     <tbody id="filas"></tbody>
   </table></div>
 </main>
@@ -69,13 +71,15 @@
     let grupo = '';
 
     function fila(r) {
-      const sep = r.grupo !== grupo ? `<tr class="grupo"><td colspan="9">${esc(r.grupo)}</td></tr>` : '';
+      const sep = r.grupo !== grupo ? `<tr class="grupo"><td colspan="10">${esc(r.grupo)}</td></tr>` : '';
+      const sola = r.auto ? 'sí' : r.error ? 'no' : `no<br><small>${r.dudosos.length ? 'dudoso: ' + esc(r.dudosos.map(window.RM.planilla.nombreCirculo).join(', ')) : 'tiene avisos'}</small>`;
       grupo = r.grupo;
       const leido = r.error ? `<small>${esc(r.error)}</small>` : `<b>${esc(r.leido)}</b>${r.avisos.length ? `<br><small>${esc(r.avisos.join(' '))}</small>` : ''}`;
       return `${sep}<tr>
         <td>${r.n}</td><td>${esc(r.nombre)}</td><td class="debe">${DEBE[r.debe]}</td>
         <td>${r.espera ? esc(r.espera) : '<small>revisión</small>'}</td><td>${leido}</td>
         <td class="est ${r.estado}">${r.estado}</td>
+        <td class="debe">${sola}</td>
         <td class="margen">relleno ${pct(r.rellenoMin)}<br>vacío ${pct(r.vacioMax)}</td>
         <td><img class="foto" src="${r.foto}" alt="Foto sintética del caso ${r.n}"></td>
         <td>${r.vista ? `<img class="vista" src="${r.vista}" alt="Zona leída del caso ${r.n}">` : '<small>sin zona</small>'}</td>
@@ -85,7 +89,8 @@
     function resumen(lista, total) {
       const n = (e) => lista.filter((r) => r.estado === e).length;
       document.getElementById('resumen').innerHTML = [
-        ['Casos', `${lista.length}/${total}`], ['ok', n('ok')], ['rechazados', n('rechazado')], ['MAL', n('MAL')], ['Umbral del lector', pct(U)]
+        ['Casos', `${lista.length}/${total}`], ['ok', n('ok')], ['rechazados', n('rechazado')], ['MAL', n('MAL')],
+        ['Se registran solas', lista.filter((r) => r.auto).length], ['Umbral del lector', pct(U)]
       ].map(([t, v]) => `<div><small>${t}</small><b>${v}</b></div>`).join('');
     }
 

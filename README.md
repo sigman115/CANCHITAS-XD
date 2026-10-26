@@ -97,7 +97,15 @@ Cada planilla trae un recuadro **RESULTADO FINAL** con un QR y círculos para re
 
 Recomendaciones: imprimir en A4 al 100 %, rellenar los círculos por completo con bolígrafo oscuro y fotografiar con buena luz, sin doblar el recuadro.
 
-**Tomar foto** abre la cámara dentro de la pestaña: la trasera en el celular o la cámara web en la computadora. Una guía muestra dónde encuadrar el recuadro y el aviso **"QR detectado"** indica que ya se puede capturar. Cada captura se lee igual que una foto subida, y la cámara queda abierta para escanear varias planillas seguidas. Se apaga sola al cerrar la cámara o al cambiar de pestaña.
+**Tomar foto** abre la cámara dentro de la pestaña: la trasera en el celular o la cámara web en la computadora. Una guía muestra dónde encuadrar el recuadro y el aviso **"QR detectado"** indica que ya se puede capturar. Cuando la hoja está quieta frente a la cámara, la captura y la lee sola, sin presionar nada. Se apaga al cerrar la cámara o al cambiar de pestaña.
+
+Con **Registrar automáticamente las lecturas claras** (activado por defecto), el resultado se guarda solo y el celular vibra. Cada registro tiene un botón **Deshacer**. La misma planilla no se registra dos veces mientras siga frente a la cámara: se saca la hoja y se pone la siguiente. Una lectura **no** se registra sola, y queda en la lista para confirmarla a mano, si:
+
+- tiene un error (círculos mal llenados o una planilla de otro fixture);
+- algún círculo está **dudoso**, es decir, entre 20 % y 40 % de oscuridad, cerca del umbral de 30 %. Pasa con rellenos a medias, X o lápiz muy suave. La lista indica qué círculo revisar;
+- el partido ya tenía **otro** resultado guardado: nunca se reemplaza solo.
+
+En el banco de pruebas, 23 de las 33 planillas se registran solas y ninguna con un resultado equivocado. Las dudosas y las mal llenadas quedan para revisión.
 
 La cámara en vivo necesita permiso del navegador y funciona abriendo `index.html` como archivo o desde una dirección `https`. Si el navegador no la permite (por ejemplo, la app abierta por `http` desde otra computadora de la red), **Tomar foto** abre directamente la cámara del celular. Si se niega el permiso, la pestaña lo avisa y se puede seguir con **Subir fotos**.
 

@@ -265,6 +265,12 @@ table.standings thead th:nth-child(2){text-align:left}
 .cam-view.ok .cam-guia{border-style:solid;border-color:var(--lime)}
 .cam-estado{position:absolute;left:0;right:0;bottom:0;display:flex;align-items:center;justify-content:center;gap:6px;padding:8px 12px;background:rgba(0,0,0,.6);color:#fff;font-size:.82rem;font-weight:700;text-align:center}
 .cam-view.ok .cam-estado{background:var(--lime);color:var(--on-lime)}
+.cam-view.warn{border-color:var(--orange)}
+.cam-view.warn .cam-guia{border-style:solid;border-color:var(--orange)}
+.cam-view.warn .cam-estado{background:var(--orange);color:#fff}
+.cam-auto{display:flex;align-items:center;gap:8px;margin:12px 0 0;font-size:.88rem;font-weight:600;color:var(--text);text-transform:none;letter-spacing:0;cursor:pointer}
+.cam-auto input{width:18px;height:18px;accent-color:var(--lime)}
+.scan-ok{display:flex;align-items:center;gap:6px;color:var(--lime);font-size:.8rem;font-weight:700}
 
 /* Hoja de la planilla: medidas reales para A4 */
 .sheets{overflow-x:auto;padding-bottom:10px}

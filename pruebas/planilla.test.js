@@ -50,6 +50,37 @@ describe('homografía (ubicar los círculos aunque la foto esté inclinada)', ()
   });
 });
 
+describe('círculos dudosos (no se registran solos)', () => {
+  test('la franja de duda va del 20 % al 40 % de oscuridad', () => {
+    assert.equal(RM.planilla.UMBRAL, 0.3);
+    assert.equal(RM.planilla.MARGEN, 0.1);
+  });
+
+  test('una lectura normal con bolígrafo no tiene círculos dudosos', () => {
+    // Valores medidos en pruebas/escaneo.html: rellenos 75-90 %, vacíos por debajo de 15 %
+    const oscuro = { a0: 0.05, a1: 0.06, a2: 0.89, b0: 0.04, b1: 0.75, b2: 0.13, woA: 0.03, woB: 0.05 };
+    assert.deepEqual(RM.planilla.dudosos(oscuro), []);
+  });
+
+  test('marcas a medias o muy suaves quedan como dudosas', () => {
+    // X ≈ 27 %, relleno a la mitad ≈ 33 %: justo los casos cercanos al umbral en el banco de pruebas
+    const oscuro = { a0: 0.05, a1: 0.27, a2: 0.06, b0: 0.04, b1: 0.06, b2: 0.33, woA: 0.03, woB: 0.05 };
+    assert.deepEqual(RM.planilla.dudosos(oscuro), ['a1', 'b2']);
+  });
+
+  test('los bordes de la franja no son dudosos (19 % y 41 %)', () => {
+    assert.deepEqual(RM.planilla.dudosos({ a0: 0.19, a1: 0.41 }), []);
+  });
+
+  test('sin datos no hay dudosos', () => {
+    assert.deepEqual(RM.planilla.dudosos(undefined), []);
+  });
+
+  test('nombre legible de cada círculo', () => {
+    assert.deepEqual(['a0', 'b2', 'woA', 'woB'].map(RM.planilla.nombreCirculo), ['A 0', 'B 2', 'W.O. A', 'W.O. B']);
+  });
+});
+
 describe('decidir el resultado según los círculos rellenados', () => {
   // marcados('a2', 'b1') → { a2: true, b1: true }
   const marcados = (...k) => Object.fromEntries(k.map((x) => [x, true]));
