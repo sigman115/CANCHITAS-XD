@@ -5,7 +5,8 @@
   const { esc, icon } = RM;
 
   // escaneos: resultados de lectura en memoria (no se guardan hasta confirmar)
-  const ui = { j: 0, excluir: new Set(), preview: null, escaneos: [], procesando: false };
+  // camara: transmisión en vivo para tomar fotos sin salir de la pestaña
+  const ui = { j: 0, excluir: new Set(), preview: null, escaneos: [], procesando: false, camara: { stream: null, error: '', qr: false } };
   const estado = () => RM.store.state;
 
   const ETIQUETA = { '2-0': '2-0', '2-1': '2-1', '1-2': '1-2', '0-2': '0-2', woA: 'W.O. (no vino A)', woB: 'W.O. (no vino B)', woAB: 'W.O. (no vino ninguno)' };
@@ -75,20 +76,130 @@
 
         <section class="card">
           <h3 class="card-title">${icon('upload')} Escanear planillas llenas</h3>
-          <p class="hint">Elige una o varias fotos o escaneos. En el celular puedes tomar la foto directamente. Debe verse completo el recuadro <b>RESULTADO FINAL</b>.</p>
+          <p class="hint">Sube fotos o escaneos, o toma la foto con la cámara del celular o de la computadora. Debe verse completo el recuadro <b>RESULTADO FINAL</b>.</p>
           <div class="form-actions">
-            <label class="btn primary file-btn">${icon('upload')} ${ui.procesando ? 'Leyendo…' : 'Elegir imágenes'}
+            <label class="btn primary file-btn">${icon('upload')} ${ui.procesando ? 'Leyendo…' : 'Subir fotos'}
               <input type="file" accept="image/*" multiple data-act="archivos" ${ui.procesando ? 'disabled' : ''}>
             </label>
+            ${botonCamara()}
             ${ui.escaneos.some((x) => x.listo) ? `<button class="btn" type="button" data-act="guardarTodos">${icon('check')} Guardar todos los válidos</button>` : ''}
             ${ui.escaneos.length ? `<button class="btn sm" type="button" data-act="limpiar">Limpiar lista</button>` : ''}
           </div>
+          ${ui.camara.error ? `<p class="alert warn">${icon('alert')}<span>${esc(ui.camara.error)}</span></p>` : ''}
+          ${ui.camara.stream ? camaraHTML() : ''}
           <ul class="scan-list">${ui.escaneos.map(escaneoHTML).join('')}</ul>
         </section>
       </div>
       <h3 class="sub">Vista previa</h3>
       <div class="sheets">${incluidos.map((x) => sheetHTML(x, x.p.id === ui.preview)).join('')}${ui.preview && ui.excluir.has(ui.preview) ? sheetHTML(lista.find((x) => x.p.id === ui.preview), true, true) : ''}</div></div>`;
     bind(el);
+    conectarVideo(el);
+  }
+
+  // ---------- Cámara ----------
+  /*
+    Con getUserMedia se ve la cámara en vivo dentro de la pestaña (celular o computadora).
+    Necesita un contexto seguro: funciona abriendo index.html como archivo o desde https/localhost.
+    Si no está disponible (por ejemplo, la app abierta por http desde otra computadora), el botón
+    se vuelve un selector de archivos con capture="environment", que en el celular abre la cámara.
+  */
+  const hayCamaraEnVivo = () => !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia);
+
+  function botonCamara() {
+    if (ui.camara.stream) return '';
+    if (!hayCamaraEnVivo()) {
+      return `<label class="btn primary file-btn">${icon('camera')} Tomar foto
+        <input type="file" accept="image/*" capture="environment" data-act="archivos" ${ui.procesando ? 'disabled' : ''}>
+      </label>`;
+    }
+    return `<button class="btn primary" type="button" data-act="camara">${icon('camera')} Tomar foto</button>`;
+  }
+
+  function camaraHTML() {
+    return `<div class="cam">
+      <div class="cam-view ${ui.camara.qr ? 'ok' : ''}">
+        <video playsinline muted aria-label="Vista de la cámara"></video>
+        <span class="cam-guia" aria-hidden="true"></span>
+        <p class="cam-estado" role="status">${ui.camara.qr ? `${icon('check')} QR detectado: ya puedes capturar` : 'Encuadra el recuadro RESULTADO FINAL dentro de la guía'}</p>
+      </div>
+      <div class="form-actions">
+        <button class="btn primary" type="button" data-act="capturar" ${ui.procesando ? 'disabled' : ''}>${icon('camera')} ${ui.procesando ? 'Leyendo…' : 'Capturar'}</button>
+        <button class="btn" type="button" data-act="cerrarCamara">Cerrar cámara</button>
+      </div>
+      <p class="hint">Sostén el celular de frente, con buena luz y sin sombras sobre los círculos. Después de capturar, la cámara sigue abierta para la siguiente planilla.</p>
+    </div>`;
+  }
+
+  async function abrirCamara() {
+    ui.camara.error = '';
+    try {
+      // Cámara trasera si existe; resolución alta para que el QR y los círculos se lean bien
+      ui.camara.stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: { ideal: 'environment' }, width: { ideal: 1920 }, height: { ideal: 1440 } },
+        audio: false
+      });
+    } catch (e) {
+      ui.camara.stream = null;
+      ui.camara.error = e.name === 'NotAllowedError' ? 'No se dio permiso para usar la cámara. Actívalo en el navegador o usa "Subir fotos".'
+        : e.name === 'NotFoundError' ? 'No se encontró ninguna cámara en este equipo. Usa "Subir fotos".'
+        : e.name === 'NotReadableError' ? 'La cámara está siendo usada por otra aplicación. Ciérrala e intenta de nuevo.'
+        : 'No se pudo abrir la cámara: ' + e.message;
+    }
+    ui.camara.qr = false;
+    RM.app.render();
+  }
+
+  function cerrarCamara() {
+    if (ui.camara.stream) ui.camara.stream.getTracks().forEach((t) => t.stop());
+    ui.camara.stream = null;
+    ui.camara.qr = false;
+    clearInterval(ui.camara.vigia);
+  }
+
+  // Cada render crea un <video> nuevo: se le vuelve a conectar la transmisión y se vigila el QR
+  function conectarVideo(el) {
+    const video = RM.$('.cam video', el);
+    if (!video || !ui.camara.stream) return;
+    // El visor toma la forma del video: horizontal en la computadora, vertical en un celular parado
+    const ajustar = () => { if (video.videoWidth) video.parentElement.style.aspectRatio = `${video.videoWidth} / ${video.videoHeight}`; };
+    video.addEventListener('loadedmetadata', ajustar);
+    video.srcObject = ui.camara.stream;
+    video.play().catch(() => { /* se reproduce cuando el navegador lo permita */ });
+    clearInterval(ui.camara.vigia);
+    const muestra = document.createElement('canvas');
+    ui.camara.vigia = setInterval(() => {
+      // Si se cambió de pestaña el video ya no está en la página: se apaga la cámara
+      if (!video.isConnected) { cerrarCamara(); return; }
+      if (!video.videoWidth) return;
+      const k = Math.min(1, 640 / video.videoWidth);
+      muestra.width = Math.round(video.videoWidth * k);
+      muestra.height = Math.round(video.videoHeight * k);
+      const ctx = muestra.getContext('2d', { willReadFrequently: true });
+      ctx.drawImage(video, 0, 0, muestra.width, muestra.height);
+      const lectura = window.jsQR(ctx.getImageData(0, 0, muestra.width, muestra.height).data, muestra.width, muestra.height, { inversionAttempts: 'dontInvert' });
+      const qr = !!(lectura && RM.planilla.leerTextoQR(lectura.data));
+      if (qr !== ui.camara.qr) {
+        // Solo se actualiza el aviso, sin redibujar la vista (el video seguiría reconectándose)
+        ui.camara.qr = qr;
+        const vista = RM.$('.cam-view', el), estado = RM.$('.cam-estado', el);
+        if (vista) vista.classList.toggle('ok', qr);
+        if (estado) estado.innerHTML = qr ? `${icon('check')} QR detectado: ya puedes capturar` : 'Encuadra el recuadro RESULTADO FINAL dentro de la guía';
+      }
+    }, 400);
+  }
+
+  // Toma el cuadro actual en resolución completa y lo procesa igual que una foto subida
+  function capturar() {
+    const video = RM.$('.cam video');
+    if (!video || !video.videoWidth || ui.procesando) return;
+    const c = document.createElement('canvas');
+    c.width = video.videoWidth;
+    c.height = video.videoHeight;
+    c.getContext('2d').drawImage(video, 0, 0);
+    const hora = new Date().toTimeString().slice(0, 8).replace(/:/g, '-');
+    c.toBlob((blob) => {
+      if (blob) procesar([new File([blob], `camara-${hora}.jpg`, { type: 'image/jpeg' })]);
+    }, 'image/jpeg', 0.92);
   }
 
   // ---------- Planilla imprimible ----------
@@ -241,6 +352,9 @@
     if (act && act.dataset.act === 'imprimir') { imprimir(); return; }
     if (act && act.dataset.act === 'guardarTodos') { guardar(ui.escaneos.map((_, i) => i)); return; }
     if (act && act.dataset.act === 'limpiar') { ui.escaneos = []; RM.app.render(); return; }
+    if (act && act.dataset.act === 'camara') { abrirCamara(); return; }
+    if (act && act.dataset.act === 'capturar') { capturar(); return; }
+    if (act && act.dataset.act === 'cerrarCamara') { cerrarCamara(); RM.app.render(); return; }
     const g = t.closest('[data-guardar]');
     if (g && !g.disabled) guardar([+g.dataset.guardar]);
   }

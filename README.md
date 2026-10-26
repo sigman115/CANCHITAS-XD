@@ -93,9 +93,13 @@ Los datos se guardan automáticamente en el navegador (`localStorage`). Con los 
 
 ## Escaneo de planillas
 
-Cada planilla trae un recuadro **RESULTADO FINAL** con un QR y círculos para rellenar: sets ganados por A (0, 1, 2), sets ganados por B (0, 1, 2) y W.O. (A o B). En la pestaña Planillas se eligen una o varias fotos o escaneos. El QR identifica el partido y, a partir de sus esquinas, se calcula dónde están los círculos aunque la foto esté inclinada. Antes de guardar, el resultado detectado se muestra con una imagen del recuadro para confirmarlo o corregirlo.
+Cada planilla trae un recuadro **RESULTADO FINAL** con un QR y círculos para rellenar: sets ganados por A (0, 1, 2), sets ganados por B (0, 1, 2) y W.O. (A o B). En la pestaña Planillas hay dos formas de cargarlas: **Subir fotos** (una o varias fotos o escaneos) o **Tomar foto** con la cámara. El QR identifica el partido y, a partir de sus esquinas, se calcula dónde están los círculos aunque la foto esté inclinada. Antes de guardar, el resultado detectado se muestra con una imagen del recuadro para confirmarlo o corregirlo.
 
 Recomendaciones: imprimir en A4 al 100 %, rellenar los círculos por completo con bolígrafo oscuro y fotografiar con buena luz, sin doblar el recuadro.
+
+**Tomar foto** abre la cámara dentro de la pestaña: la trasera en el celular o la cámara web en la computadora. Una guía muestra dónde encuadrar el recuadro y el aviso **"QR detectado"** indica que ya se puede capturar. Cada captura se lee igual que una foto subida, y la cámara queda abierta para escanear varias planillas seguidas. Se apaga sola al cerrar la cámara o al cambiar de pestaña.
+
+La cámara en vivo necesita permiso del navegador y funciona abriendo `index.html` como archivo o desde una dirección `https`. Si el navegador no la permite (por ejemplo, la app abierta por `http` desde otra computadora de la red), **Tomar foto** abre directamente la cámara del celular. Si se niega el permiso, la pestaña lo avisa y se puede seguir con **Subir fotos**.
 
 ## Evolución de puntos
 

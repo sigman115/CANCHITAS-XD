@@ -1,6 +1,6 @@
 /* ===================== Impresión ===================== */
 @page{size:landscape;margin:12mm}
-.top,footer,.toast,.btn,.icon-btn,.del,.builder,.list-tools,.seg,.page-alert,.alert{display:none!important}
+.top,footer,.toast,.btn,.icon-btn,.del,.builder,.list-tools,.seg,.page-alert,.alert,.cam{display:none!important}
 body{background:#fff;color:#000}
 main{padding:0}
 .page-head{margin-bottom:12px}

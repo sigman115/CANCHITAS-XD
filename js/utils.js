@@ -68,6 +68,7 @@
     bolt: '<path d="M13 2 4 14h7l-1 8 9-12h-7z"/>',
     print: '<path d="M6 9V3h12v6M6 18H4v-7h16v7h-2M7 14h10v7H7z"/>',
     upload: '<path d="M12 16V4M7 9l5-5 5 5M5 20h14"/>',
+    camera: '<path d="M3 8h4l2-3h6l2 3h4v12H3z"/><circle cx="12" cy="13.5" r="3.5"/>',
     refresh: '<path d="M20 11a8 8 0 1 0-2.3 5.7M20 4v7h-7"/>'
   };
   RM.icon = (name, size) => {
