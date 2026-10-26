@@ -31,9 +31,34 @@ js/
     resultados.js     Carga de resultados por jornada (2-0, 2-1, 1-2, 0-2, W.O.)
     tabla.js          Tabla de posiciones por fecha, gráfico de evolución y partidos de desempate
     planillas.js      Impresión de planillas por jornada y escaneo de planillas llenas
+pruebas/
+  cargar.js           Carga la lógica de js/ en Node, en el mismo orden que index.html
+  fixture.test.js     Todos contra todos: cruces únicos, jornadas, descansos, validación
+  tabla.test.js       Puntos, W.O., orden de la tabla, desempates y evolución por fecha
+  programacion.test.js  Canchas y horarios: sin choques, huecos al final, intercalado, rotación justa
+  planilla.test.js    Texto del QR, perspectiva de la foto y lectura de los círculos
+  datos.test.js       Fechas de las jornadas, textos, respaldos y consultas
 ```
 
 Se usan scripts clásicos en lugar de módulos ES porque los navegadores bloquean los módulos cuando la página se abre como archivo local (`file://`).
+
+## Pruebas automáticas
+
+La lógica del sistema (fixture, tabla, programación, planillas y datos) tiene pruebas automáticas. Se ejecutan con Node.js 22 o superior, sin instalar nada:
+
+```
+node --test "pruebas/*.test.js"
+```
+
+Las pruebas comprueban las reglas del campeonato tal como están escritas en este README. Algunos ejemplos:
+
+- Con 2 a 16 equipos, todos se enfrentan una sola vez, nadie juega dos veces en la misma jornada y, si el número es impar, cada equipo descansa exactamente una vez.
+- Cada resultado da los puntos correctos (2-0 = 3, 2-1 = 2, 1-2 = 1, 0-2 = 0 y W.O.). El partido de desempate pesa más que la diferencia de sets, y esta más que los sets a favor.
+- Con las canchas del campeonato, nunca hay dos partidos en la misma cancha y hora, los horarios libres quedan al final y ningún equipo juega más de 3 veces a la misma hora. Con un orden fijo, un equipo podría jugar las 7 veces a la misma hora.
+- La planilla ubica los círculos aunque la foto esté inclinada, y rechaza marcas imposibles como 2-2 o dos círculos en la misma fila.
+- Con el martes como día de juego, las dos primeras jornadas caen el 22 y el 29 de septiembre de 2026, como en el fixture en papel.
+
+Para comprobar que las pruebas detectan errores, se introdujeron errores a propósito en una copia del código: dar 3 puntos por un 2-1, dar 1 punto al ausente en un W.O., ignorar el desempate, quitar la rotación del fixture o de los horarios, o cambiar un signo en la perspectiva. En todos los casos la suite falló.
 
 ## Datos
 
