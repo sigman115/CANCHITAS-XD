@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<!--
+  Banco de pruebas del escaneo de planillas (RaquetMatch).
+  Se abre con doble clic, igual que index.html: genera fotos sintéticas de planillas llenas
+  y las lee con el mismo código de la pestaña Planillas (js/planilla.js).
+-->
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pruebas de escaneo · RaquetMatch</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ccircle cx='32' cy='32' r='28' fill='%23d7ff3a'/%3E%3Cpath d='M10 24c14 6 30 6 44 0M10 40c14-6 30-6 44 0' stroke='%230b0d12' stroke-width='4' fill='none'/%3E%3C/svg%3E">
+<style>
+  :root{--bg:#f3f1ea;--card:#fff;--line:#dcd8cc;--text:#14161c;--muted:#5e6475;--ok:#2f7d18;--warn:#a86400;--bad:#c62828}
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font:14px/1.5 "Segoe UI",system-ui,Arial,sans-serif;background:var(--bg);color:var(--text);padding:28px 16px}
+  main{max-width:1180px;margin:0 auto}
+  h1{font:900 1.8rem "Arial Black","Segoe UI Black",system-ui,sans-serif;letter-spacing:-.5px}
+  .intro{color:var(--muted);max-width:820px;margin:6px 0 18px}
+  .resumen{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:18px}
+  .resumen div{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px 16px;min-width:130px}
+  .resumen b{display:block;font-size:1.6rem;line-height:1.1}
+  .veredicto{padding:12px 16px;border-radius:12px;font-weight:700;margin-bottom:18px;border:1px solid var(--line);background:var(--card)}
+  .veredicto.si{border-color:var(--ok);color:var(--ok)}
+  .veredicto.no{border-color:var(--bad);color:var(--bad)}
+  .tabla{width:100%;overflow-x:auto;background:var(--card);border:1px solid var(--line);border-radius:12px}
+  table{width:100%;border-collapse:collapse;font-size:.86rem}
+  th,td{padding:8px 10px;border-bottom:1px solid var(--line);text-align:left;vertical-align:middle}
+  th{font-size:.7rem;text-transform:uppercase;letter-spacing:1px;color:var(--muted);background:#ebe8de}
+  tr.grupo td{background:#f7f5ef;font-weight:700;text-transform:uppercase;font-size:.72rem;letter-spacing:1.5px;color:var(--muted)}
+  td img{display:block;border-radius:4px;border:1px solid var(--line)}
+  .foto{width:72px}
+  .vista{width:190px}
+  .est{font-weight:800;white-space:nowrap}
+  .est.ok{color:var(--ok)} .est.rechazado{color:var(--warn)} .est.MAL{color:var(--bad)}
+  .debe{font-size:.75rem;color:var(--muted);white-space:nowrap}
+  .margen{font-variant-numeric:tabular-nums;white-space:nowrap;font-size:.8rem;color:var(--muted)}
+  small{color:var(--muted)}
+</style>
+</head>
+<body>
+<main>
+  <h1>Pruebas del escaneo de planillas</h1>
+  <p class="intro">Cada fila es una foto sintética de una planilla llena, leída con el mismo código que usa la pestaña Planillas.
+    <b>ok</b>: hizo lo que debía · <b>rechazado</b>: pidió revisión a mano en una foto que debía leer ·
+    <b>MAL</b>: leyó un resultado distinto sin avisar (el único error grave: metería un dato falso en la tabla).
+    La columna <i>oscuridad</i> compara el relleno más claro y el círculo vacío más oscuro con el umbral del lector.</p>
+  <div class="resumen" id="resumen"></div>
+  <div class="veredicto" id="veredicto">Generando y leyendo planillas…</div>
+  <div class="tabla"><table>
+    <thead><tr><th>#</th><th>Caso</th><th>Debe</th><th>Esperado</th><th>Leído</th><th>Estado</th><th>Oscuridad</th><th>Foto</th><th>Lo que vio el lector</th></tr></thead>
+    <tbody id="filas"></tbody>
+  </table></div>
+</main>
+
+<script src="../js/vendor/qrcode-generator.js"></script>
+<script src="../js/vendor/jsQR.js"></script>
+<script src="../js/utils.js"></script>
+<script src="../js/tabla.js"></script>
+<script src="../js/planilla.js"></script>
+<script src="escaneo.js"></script>
+<script>
+  (function () {
+    'use strict';
+    const esc = window.RM.esc;
+    const U = window.RM.planilla.UMBRAL;
+    const pct = (x) => (x == null ? '—' : Math.round(x * 100) + ' %');
+    const DEBE = { leer: 'leer', 'leer-o-rechazar': 'leer o rechazar', rechazar: 'rechazar' };
+    let grupo = '';
+
+    function fila(r) {
+      const sep = r.grupo !== grupo ? `<tr class="grupo"><td colspan="9">${esc(r.grupo)}</td></tr>` : '';
+      grupo = r.grupo;
+      const leido = r.error ? `<small>${esc(r.error)}</small>` : `<b>${esc(r.leido)}</b>${r.avisos.length ? `<br><small>${esc(r.avisos.join(' '))}</small>` : ''}`;
+      return `${sep}<tr>
+        <td>${r.n}</td><td>${esc(r.nombre)}</td><td class="debe">${DEBE[r.debe]}</td>
+        <td>${r.espera ? esc(r.espera) : '<small>revisión</small>'}</td><td>${leido}</td>
+        <td class="est ${r.estado}">${r.estado}</td>
+        <td class="margen">relleno ${pct(r.rellenoMin)}<br>vacío ${pct(r.vacioMax)}</td>
+        <td><img class="foto" src="${r.foto}" alt="Foto sintética del caso ${r.n}"></td>
+        <td>${r.vista ? `<img class="vista" src="${r.vista}" alt="Zona leída del caso ${r.n}">` : '<small>sin zona</small>'}</td>
+      </tr>`;
+    }
+
+    function resumen(lista, total) {
+      const n = (e) => lista.filter((r) => r.estado === e).length;
+      document.getElementById('resumen').innerHTML = [
+        ['Casos', `${lista.length}/${total}`], ['ok', n('ok')], ['rechazados', n('rechazado')], ['MAL', n('MAL')], ['Umbral del lector', pct(U)]
+      ].map(([t, v]) => `<div><small>${t}</small><b>${v}</b></div>`).join('');
+    }
+
+    // Estado para quien automatiza la página (Chrome sin ventana): listo, resultados y error
+    window.__escaneo = { listo: false, resultados: [] };
+    const filas = document.getElementById('filas');
+    const total = window.BancoEscaneo.CASOS.length;
+    const hechos = [];
+    window.BancoEscaneo.correr((r) => {
+      hechos.push(r);
+      filas.insertAdjacentHTML('beforeend', fila(r));
+      resumen(hechos, total);
+    }).then((lista) => {
+      window.__escaneo.resultados = lista;
+      window.__escaneo.listo = true;
+      resumen(lista, total);
+      const mal = lista.filter((r) => r.estado === 'MAL').length;
+      const rech = lista.filter((r) => r.estado === 'rechazado').length;
+      const v = document.getElementById('veredicto');
+      v.className = 'veredicto ' + (mal || rech ? 'no' : 'si');
+      v.textContent = mal || rech
+        ? `Hay ${mal} lectura(s) incorrecta(s) y ${rech} foto(s) que debían leerse y se rechazaron.`
+        : `Aprobado: las ${lista.length} planillas se leyeron o rechazaron como corresponde, sin ninguna lectura incorrecta.`;
+    }).catch((e) => {
+      window.__escaneo.error = e.message;
+      document.getElementById('veredicto').textContent = 'Error al correr las pruebas: ' + e.message;
+    });
+  })();
+</script>
+</body>
+</html>

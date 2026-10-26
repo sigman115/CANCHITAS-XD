@@ -38,6 +38,8 @@ pruebas/
   programacion.test.js  Canchas y horarios: sin choques, huecos al final, intercalado, rotación justa
   planilla.test.js    Texto del QR, perspectiva de la foto y lectura de los círculos
   datos.test.js       Fechas de las jornadas, textos, respaldos y consultas
+  escaneo.html        Banco de pruebas del escaneo: fotos sintéticas de planillas llenas (se abre en el navegador)
+  escaneo.js          Generador de las fotos (hoja, marcas a mano y condiciones de la foto) y casos esperados
 ```
 
 Se usan scripts clásicos en lugar de módulos ES porque los navegadores bloquean los módulos cuando la página se abre como archivo local (`file://`).
@@ -58,7 +60,23 @@ Las pruebas comprueban las reglas del campeonato tal como están escritas en est
 - La planilla ubica los círculos aunque la foto esté inclinada, y rechaza marcas imposibles como 2-2 o dos círculos en la misma fila.
 - Con el martes como día de juego, las dos primeras jornadas caen el 22 y el 29 de septiembre de 2026, como en el fixture en papel.
 
-Para comprobar que las pruebas detectan errores, se introdujeron errores a propósito en una copia del código: dar 3 puntos por un 2-1, dar 1 punto al ausente en un W.O., ignorar el desempate, quitar la rotación del fixture o de los horarios, o cambiar un signo en la perspectiva. En todos los casos la suite falló.
+### Escaneo de planillas
+
+El escaneo depende de fotos reales, así que no se puede probar solo con Node. `pruebas/escaneo.html` se abre con doble clic, igual que la app. Genera 33 fotos sintéticas de planillas llenas y las lee con el mismo código de la pestaña Planillas. Cada foto se arma en tres pasos:
+
+1. Dibuja la hoja con las mismas medidas en milímetros que la planilla impresa (`RM.planilla.LAYOUT`).
+2. La rellena como lo haría una persona: relleno completo o parcial, X, visto, número encerrado, bolígrafo azul, lápiz, manchas y dobleces.
+3. La "fotografía": hoja girada (hasta 180°), en ángulo, con poca luz, sombra, desenfoque, baja resolución, compresión JPEG y ruido.
+
+Cada caso indica si el lector debe **leerlo**, si vale **leerlo o pedir revisión** (casos difíciles) o si debe **pedir revisión** (planillas mal llenadas, como dos círculos en una fila o un 2-2). El error grave es leer un resultado distinto sin avisar, porque metería un dato falso en la tabla. Ninguno de los 33 casos lo hace.
+
+La página también muestra qué tan oscuro quedó el círculo relleno más claro y el vacío más oscuro, comparados con el umbral del lector (30 %). Con bolígrafo, los círculos rellenos quedan entre 75 % y 90 % y los vacíos por debajo de 15 %.
+
+Las fotos son una simulación. Antes del campeonato conviene probar también con algunas planillas impresas y fotografiadas con el celular que se va a usar.
+
+### Comprobación de las pruebas
+
+Para comprobar que las pruebas detectan errores, se introdujeron errores a propósito en una copia del código: dar 3 puntos por un 2-1, dar 1 punto al ausente en un W.O., ignorar el desempate, quitar la rotación del fixture o de los horarios, o cambiar un signo en la perspectiva. En todos los casos la suite falló. Con el escaneo se hizo lo mismo: un umbral demasiado bajo (19 lecturas incorrectas), uno demasiado alto (no lee bolígrafo azul ni lápiz), las esquinas del QR cruzadas (20 planillas rechazadas) y un lector que no se ajusta a la luz de la foto (4 lecturas incorrectas con poca luz o sombra). El banco detectó cada uno.
 
 ## Datos
 

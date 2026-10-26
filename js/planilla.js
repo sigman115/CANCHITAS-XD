@@ -191,5 +191,5 @@
     return out.toDataURL('image/jpeg', 0.8);
   }
 
-  RM.planilla = { LAYOUT, textoQR, leerTextoQR, qrSVG, homografia, escanear, decidir };
+  RM.planilla = { LAYOUT, UMBRAL, textoQR, leerTextoQR, qrSVG, homografia, escanear, decidir };
 })();
