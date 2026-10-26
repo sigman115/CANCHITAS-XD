@@ -1,0 +1,28 @@
+/* ===================== Base · tokens de diseño y reset ===================== */
+:root{
+  --bg:#0b0d12; --bg2:#12151d; --card:#161a24; --line:#262c3a;
+  --text:#eef1f6; --muted:#8b93a7;
+  --lime:#d7ff3a; --on-lime:#0b0d12; --orange:#ff5b2e; --sky:#4cc9f0;
+  --radius:18px; --shadow:0 20px 50px -20px rgba(0,0,0,.6);
+  --font:"Segoe UI",system-ui,-apple-system,Roboto,Helvetica,Arial,sans-serif;
+  --display:"Arial Black","Segoe UI Black",Impact,system-ui,sans-serif;
+  color-scheme:dark;
+}
+:root[data-theme="light"]{
+  --bg:#f3f1ea; --bg2:#e9e6dc; --card:#ffffff; --line:#dcd8cc;
+  --text:#14161c; --muted:#5e6475; --lime:#7a9a00; --on-lime:#0b0d12;
+  --shadow:0 20px 40px -24px rgba(0,0,0,.25);
+  color-scheme:light;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{font-family:var(--font);background:var(--bg);color:var(--text);line-height:1.55;min-height:100vh;display:flex;flex-direction:column;overflow-x:hidden;transition:background .3s,color .3s}
+a{color:var(--lime)}
+button,input,select{font:inherit;color:inherit}
+.wrap{width:min(1180px,100% - 32px);margin-inline:auto}
+.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+h2{font-family:var(--display);font-size:clamp(1.7rem,4vw,2.6rem);letter-spacing:-1px;line-height:1.05}
+h3{font-size:1.05rem}
+.ico{flex-shrink:0;vertical-align:-3px}
+:focus-visible{outline:2px solid var(--orange);outline-offset:2px}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}

@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<!--
+  ============================================================
+  RaquetMatch — Gestión de campeonatos de ráquet
+  Examen Final · Sistemas Informáticos (Módulo 2)
+  Autores: Dayana Ruth · Kevin
+  HTML5 + CSS + JavaScript (sin frameworks, funciona sin servidor)
+  ============================================================
+-->
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="RaquetMatch: registro de jugadores, armado de equipos por categoría, fixture y programación de jornadas de ráquet.">
+<meta name="author" content="Dayana Ruth, Kevin">
+<title>RaquetMatch · Campeonatos de Ráquet</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ccircle cx='32' cy='32' r='28' fill='%23d7ff3a'/%3E%3Cpath d='M10 24c14 6 30 6 44 0M10 40c14-6 30-6 44 0' stroke='%230b0d12' stroke-width='4' fill='none'/%3E%3C/svg%3E">
+<script>try{var t=localStorage.getItem('rm-theme');if(t)document.documentElement.setAttribute('data-theme',t)}catch(e){}</script>
+<link rel="stylesheet" href="css/base.css">
+<link rel="stylesheet" href="css/layout.css">
+<link rel="stylesheet" href="css/components.css">
+<link rel="stylesheet" href="css/print.css" media="print">
+</head>
+<body>
+<header class="top">
+  <div class="wrap top-row">
+    <a href="#/inicio" class="brand" aria-label="RaquetMatch, inicio">
+      <svg viewBox="0 0 64 64" aria-hidden="true"><circle cx="32" cy="32" r="28" fill="#d7ff3a"/><path d="M10 24c14 6 30 6 44 0M10 40c14-6 30-6 44 0" stroke="#0b0d12" stroke-width="4" fill="none" stroke-linecap="round"/></svg>
+      Raquet<b>Match</b>
+    </a>
+    <p class="top-meta" id="topMeta"></p>
+    <div class="top-actions">
+      <button class="icon-btn" id="exportBtn" type="button" title="Descargar respaldo (.json)" aria-label="Descargar respaldo">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></svg>
+      </button>
+      <button class="icon-btn" id="importBtn" type="button" title="Cargar respaldo (.json)" aria-label="Cargar respaldo">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20V9M7 14l5-5 5 5M5 4h14"/></svg>
+      </button>
+      <input type="file" id="importInput" accept=".json,application/json" hidden>
+      <button class="icon-btn" id="themeBtn" type="button" aria-label="Cambiar tema claro u oscuro">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.2 4.2l1.4 1.4M18.4 18.4l1.4 1.4M1 12h2M21 12h2M4.2 19.8l1.4-1.4M18.4 5.6l1.4-1.4"/></svg>
+      </button>
+    </div>
+  </div>
+  <nav class="wrap tabs" id="tabs" aria-label="Secciones del sistema"></nav>
+</header>
+
+<main class="wrap" id="view" tabindex="-1"></main>
+
+<footer>
+  <div class="wrap">
+    <p><strong>RaquetMatch</strong> · Examen Final — Sistemas Informáticos (Módulo 2)</p>
+    <p>Hecho por <strong>Dayana Ruth</strong> y <strong>Kevin</strong> · HTML · CSS · JavaScript</p>
+  </div>
+</footer>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<!-- Scripts clásicos (no módulos) para que funcione abriendo el archivo con doble clic -->
+<script src="js/vendor/qrcode-generator.js"></script>
+<script src="js/vendor/jsQR.js"></script>
+<script src="js/utils.js"></script>
+<script src="js/store.js"></script>
+<script src="js/fixture.js"></script>
+<script src="js/programacion.js"></script>
+<script src="js/tabla.js"></script>
+<script src="js/planilla.js"></script>
+<script src="js/demo.js"></script>
+<script src="js/views/inicio.js"></script>
+<script src="js/views/campeonato.js"></script>
+<script src="js/views/jugadores.js"></script>
+<script src="js/views/equipos.js"></script>
+<script src="js/views/fixture.js"></script>
+<script src="js/views/programacion.js"></script>
+<script src="js/views/resultados.js"></script>
+<script src="js/views/tabla.js"></script>
+<script src="js/views/planillas.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>

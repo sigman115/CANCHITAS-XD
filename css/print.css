@@ -1,0 +1,27 @@
+/* ===================== Impresión ===================== */
+@page{size:landscape;margin:12mm}
+.top,footer,.toast,.btn,.icon-btn,.del,.builder,.list-tools,.seg,.page-alert,.alert{display:none!important}
+body{background:#fff;color:#000}
+main{padding:0}
+.page-head{margin-bottom:12px}
+.num{color:#000}
+.card{box-shadow:none;border:1px solid #999;break-inside:avoid;background:#fff}
+.cat-head{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+.table-scroll{overflow:visible;border-color:#999}
+table.fixture th,table.fixture td{border-color:#999;color:#000;background:#fff!important;white-space:normal}
+.num-badge{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+.jornada{break-inside:avoid;margin-bottom:10px}
+.equity-card,.prog-body>.hint{display:none!important}
+.match-cell{border:1px solid #999!important;background:#fff!important;color:#000!important;min-height:0}
+td.na{background:#eee!important;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+.desempate,.res-top{display:none!important}
+table.standings th,table.standings td{border-color:#999;color:#000;background:#fff!important}
+.pts{border:1px solid #999;background:#fff!important;color:#000!important}
+.champion{background:#fff!important;border:2px solid #000;color:#000}
+
+/* Planillas: al imprimir desde la pestaña Planillas solo salen las hojas */
+@page planilla{size:A4 portrait;margin:8mm}
+body.print-sheets .pl-root>*:not(.sheets){display:none!important}
+body.print-sheets .sheets{overflow:visible;padding:0}
+body.print-sheets .sheet{display:block!important;page:planilla;break-after:page;box-shadow:none;margin:0;border-radius:0;padding:0}
+body.print-sheets .sheet.no-print{display:none!important}
