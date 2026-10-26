@@ -226,6 +226,11 @@ td.total{font-family:var(--display);font-size:1.05rem;color:var(--lime)}
 .des-form select{width:auto;min-width:180px;flex:1}
 .vs-sep{font-weight:800;color:var(--orange);font-size:.75rem;text-transform:uppercase}
 table.standings thead th:nth-child(2){text-align:left}
+.evo{margin-top:18px;padding:16px 18px 10px;border:1px solid var(--line);border-radius:14px}
+.evo figcaption{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:baseline;gap:2px 12px;margin-bottom:10px}
+.evo figcaption span{font-size:.8rem;color:var(--muted)}
+.evo-canvas{position:relative;height:340px}
+@media (max-width:520px){.evo{padding:12px 10px 8px}.evo-canvas{height:560px}}
 
 /* Planillas: listas de impresión y de escaneo */
 .planillas-grid{margin-bottom:22px}

@@ -8,7 +8,14 @@
   const ui = { des: {} };
   const estado = () => RM.store.state;
 
+  // Gráficos de evolución activos (Chart.js); se destruyen antes de volver a dibujar
+  let graficos = [];
+  const hayChart = () => typeof window.Chart === 'function';
+  if (hayChart()) window.Chart.defaults.font.family = getComputedStyle(document.body).fontFamily;
+
   function render(el) {
+    graficos.forEach((g) => g.destroy());
+    graficos = [];
     const s = estado();
     const cats = s.campeonato.categorias.filter((c) => s.fixture[c.id]);
     el.innerHTML = `
@@ -19,6 +26,7 @@
       <p class="hint page-alert">Puntos: 2-0 = 3 · 2-1 = 2 · 1-2 = 1 · 0-2 = 0 · W.O. = 0 para el ausente. Orden: puntos, desempate, diferencia de sets y sets a favor.</p>
       ${cats.length ? `<div class="fixture-list">${cats.map(categoriaHTML).join('')}</div>` : '<div class="empty">Primero genera el fixture en la pestaña <a href="#/fixture">Fixture</a>.</div>'}`;
     bind(el);
+    el.querySelectorAll('canvas[data-evo]').forEach((c) => graficos.push(grafico(c)));
   }
 
   function categoriaHTML(cat) {
@@ -61,10 +69,90 @@
           <tbody>${filas}</tbody>
         </table></div>
         ${cierre}
+        ${t.jugados && hayChart() ? evolucionHTML(cat) : ''}
         ${t.terminado && t.empates.length ? desempateHTML(cat, t, pendientes) : ''}
       </div>
     </section>`;
   }
+
+  function evolucionHTML(cat) {
+    const hasta = RM.tabla.evolucion(estado(), cat.id).hasta;
+    return `<figure class="evo">
+      <figcaption><b>Evolución de puntos</b><span>Puntos acumulados hasta la fecha ${hasta + 1} · toca o pasa el cursor sobre una fecha para ver cada resultado</span></figcaption>
+      <div class="evo-canvas"><canvas data-evo="${cat.id}" role="img" aria-label="Gráfico de puntos acumulados por fecha de la categoría ${esc(cat.nombre)}. Los mismos datos están en la tabla de posiciones."></canvas></div>
+    </figure>`;
+  }
+
+  /*
+    Gráfico de líneas: una línea por equipo con sus puntos acumulados en cada fecha.
+    El color sigue al número del equipo (no a su posición), así no cambia al moverse en la tabla.
+    Los colores salen de las variables CSS --serie-N, que tienen versión para tema claro y oscuro.
+  */
+  function grafico(canvas) {
+    const catId = canvas.dataset.evo;
+    const ev = RM.tabla.evolucion(estado(), catId);
+    const css = getComputedStyle(document.documentElement);
+    const v = (n) => css.getPropertyValue(n).trim();
+    const tinta = v('--text'), apagado = v('--muted'), linea = v('--line'), fondo = v('--card');
+    // Hay 8 colores validados; desde el equipo 9 la línea va en gris (sigue en la leyenda y el detalle)
+    const colores = ev.equipos.map((e) => (e.num <= 8 ? v(`--serie-${e.num}`) : apagado));
+
+    // Al pasar sobre la leyenda se resalta un equipo y los demás se atenúan
+    const resaltar = (g, idx) => {
+      g.data.datasets.forEach((d, i) => { d.borderColor = d.backgroundColor = idx === null || i === idx ? colores[i] : colores[i] + '30'; });
+      g.update('none');
+    };
+    const detalle = (f) => (f.estado === 'jugado' ? `${f.texto}, +${f.pts}` : f.estado === 'descansa' ? 'libre' : 'pendiente');
+
+    return new window.Chart(canvas, {
+      type: 'line',
+      data: {
+        labels: Array.from({ length: ev.nFechas }, (_, i) => `Fecha ${i + 1}`),
+        datasets: ev.equipos.map((e, i) => ({
+          label: `${e.num} · ${RM.q.nombrePorNumero(catId, e.num)}`,
+          data: e.puntos,
+          borderColor: colores[i], backgroundColor: colores[i],
+          borderWidth: 2, pointRadius: 4, pointHoverRadius: 6, pointBorderColor: fondo, pointBorderWidth: 2
+        }))
+      },
+      options: {
+        animation: false,
+        maintainAspectRatio: false,
+        interaction: { mode: 'index', intersect: false },
+        scales: {
+          x: { grid: { display: false }, border: { color: linea }, ticks: { color: apagado } },
+          y: {
+            beginAtZero: true, grace: 1, grid: { color: linea }, border: { display: false },
+            ticks: { color: apagado, precision: 0 },
+            title: { display: true, text: 'Puntos acumulados', color: apagado }
+          }
+        },
+        plugins: {
+          legend: {
+            position: 'bottom',
+            labels: { color: tinta, usePointStyle: true, pointStyle: 'circle', boxWidth: 8, boxHeight: 8, padding: 14 },
+            onHover: (e, item, legend) => resaltar(legend.chart, item.datasetIndex),
+            onLeave: (e, item, legend) => resaltar(legend.chart, null)
+          },
+          tooltip: {
+            backgroundColor: v('--bg2'), borderColor: linea, borderWidth: 1,
+            titleColor: tinta, bodyColor: tinta, usePointStyle: true, padding: 10,
+            itemSort: (a, b) => b.parsed.y - a.parsed.y,
+            callbacks: { label: (c) => ` ${c.dataset.label}: ${c.parsed.y} pts (${detalle(ev.equipos[c.datasetIndex].fechas[c.dataIndex])})` }
+          }
+        }
+      }
+    });
+  }
+
+  // Al cambiar de tema se vuelven a dibujar los gráficos con los colores del tema nuevo
+  new MutationObserver(() => {
+    graficos = graficos.map((g) => {
+      const canvas = g.canvas;
+      g.destroy();
+      return canvas.isConnected ? grafico(canvas) : null;
+    }).filter(Boolean);
+  }).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
 
   function desempateHTML(cat, t, pendientes) {
     const s = estado();

@@ -81,5 +81,27 @@
     return { lista, total, jugados, terminado, empates };
   }
 
-  RM.tabla = { calcular, valor, etiqueta, resultadoDe, RESULTADOS };
+  /*
+    Puntos acumulados de cada equipo fecha por fecha, para el gráfico de evolución.
+    Sale de calcular(), así el gráfico y la tabla nunca muestran números distintos.
+    Las fechas posteriores a la última con resultados quedan en null (la línea se corta ahí).
+  */
+  function evolucion(st, catId) {
+    const t = calcular(st, catId);
+    if (!t) return null;
+    let hasta = -1;
+    t.lista.forEach((f) => f.fechas.forEach((x, ji) => { if (x.estado === 'jugado' && ji > hasta) hasta = ji; }));
+    const equipos = t.lista.slice().sort((x, y) => x.num - y.num).map((f) => {
+      let acum = 0;
+      const puntos = f.fechas.map((x, ji) => {
+        if (ji > hasta) return null;
+        if (x.estado === 'jugado') acum += x.pts;
+        return acum;
+      });
+      return { num: f.num, puntos, fechas: f.fechas };
+    });
+    return { nFechas: st.fixture[catId].jornadas.length, hasta, equipos };
+  }
+
+  RM.tabla = { calcular, evolucion, valor, etiqueta, resultadoDe, RESULTADOS };
 })();

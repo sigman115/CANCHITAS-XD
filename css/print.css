@@ -14,7 +14,7 @@ table.fixture th,table.fixture td{border-color:#999;color:#000;background:#fff!i
 .equity-card,.prog-body>.hint{display:none!important}
 .match-cell{border:1px solid #999!important;background:#fff!important;color:#000!important;min-height:0}
 td.na{background:#eee!important;-webkit-print-color-adjust:exact;print-color-adjust:exact}
-.desempate,.res-top{display:none!important}
+.desempate,.res-top,.evo{display:none!important}
 table.standings th,table.standings td{border-color:#999;color:#000;background:#fff!important}
 .pts{border:1px solid #999;background:#fff!important;color:#000!important}
 .champion{background:#fff!important;border:2px solid #000;color:#000}
