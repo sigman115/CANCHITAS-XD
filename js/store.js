@@ -3,6 +3,7 @@
   'use strict';
   const RM = window.RM;
   const KEY = 'raquetmatch-campeonato';
+  const SIN_ESPACIO = 'No hay espacio para guardar. Quita fotos o exporta un respaldo.';
 
   function estadoInicial() {
     return {
@@ -23,7 +24,7 @@
           { id: 'c2', nombre: 'Cancha 2', horarios: ['07:45', '08:30'] }
         ]
       },
-      // { id, nombres, apellidos, ci, celular, categoria }
+      // { id, nombres, apellidos, ci, celular, categoria, foto } — foto: data URL JPEG o '' (perfil por defecto)
       jugadores: [],
       // { id, categoriaId, jugadores: [id, id, (id relevo)], numero }
       equipos: [],
@@ -45,7 +46,7 @@
       ...base,
       ...d,
       campeonato: { ...base.campeonato, ...(d.campeonato || {}) },
-      jugadores: Array.isArray(d.jugadores) ? d.jugadores : [],
+      jugadores: Array.isArray(d.jugadores) ? d.jugadores.filter((j) => j && typeof j === 'object').map(RM.perfil.normalizarJugador) : [],
       equipos: Array.isArray(d.equipos) ? d.equipos : [],
       fixture: d.fixture && typeof d.fixture === 'object' ? d.fixture : {},
       programacion: d.programacion && Array.isArray(d.programacion.jornadas) ? d.programacion : null,
@@ -65,15 +66,25 @@
         if (raw) this.state = combinar(JSON.parse(raw));
       } catch (e) { /* sin almacenamiento disponible: se trabaja en memoria */ }
     },
+    // Devuelve false si no se pudo guardar (por ejemplo, localStorage lleno por las fotos)
     save() {
-      try { localStorage.setItem(KEY, JSON.stringify(this.state)); } catch (e) { /* ignorar */ }
+      try { localStorage.setItem(KEY, JSON.stringify(this.state)); return true; } catch (e) { return false; }
     },
-    // Aplica un cambio, guarda y redibuja (silent: guarda sin redibujar la vista)
+    /*
+      Aplica un cambio, guarda y redibuja (silent: guarda sin redibujar la vista). Devuelve si se guardó.
+      deshacerSiFalla: si no se pudo guardar, vuelve al estado anterior para que la pantalla no muestre
+      un cambio que se perdería al recargar (se usa al guardar jugadores, que pueden traer foto).
+    */
     commit(fn, opts) {
+      const o = opts || {};
+      const copia = o.deshacerSiFalla ? JSON.stringify(this.state) : null;
       fn(this.state);
-      this.save();
-      if (!(opts && opts.silent)) avisar();
+      const ok = this.save();
+      if (!ok && copia) this.state = JSON.parse(copia);
+      if (!o.silent) avisar();
+      return ok;
     },
+    SIN_ESPACIO,
     subscribe(fn) { oyentes.push(fn); },
     exportar() {
       const c = this.state.campeonato;
@@ -91,9 +102,13 @@
       let d;
       try { d = JSON.parse(texto); } catch (e) { throw new Error('El archivo no es un JSON válido'); }
       if (!d || !d.campeonato || !Array.isArray(d.jugadores)) throw new Error('El archivo no es un respaldo de RaquetMatch');
+      // Si no se puede guardar se vuelve al estado anterior: la pantalla muestra lo que de verdad quedó guardado
+      const anterior = this.state;
       this.state = combinar(d);
-      this.save();
+      const ok = this.save();
+      if (!ok) this.state = anterior;
       avisar();
+      return ok;
     }
   };
 

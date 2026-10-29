@@ -75,7 +75,7 @@
     };
   }
 
-  // ---------- Lectura de una imagen ----------
+  // ---------- Lectura de una imagen (también la usa la foto del jugador) ----------
   function cargarImagen(archivo) {
     return new Promise((ok, mal) => {
       const url = URL.createObjectURL(archivo);
@@ -202,5 +202,5 @@
     return out.toDataURL('image/jpeg', 0.8);
   }
 
-  RM.planilla = { LAYOUT, UMBRAL, MARGEN, textoQR, leerTextoQR, qrSVG, homografia, escanear, decidir, dudosos, nombreCirculo };
+  RM.planilla = { LAYOUT, UMBRAL, MARGEN, textoQR, leerTextoQR, qrSVG, homografia, cargarImagen, escanear, decidir, dudosos, nombreCirculo };
 })();

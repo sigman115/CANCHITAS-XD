@@ -34,6 +34,11 @@
     const t = RM.tabla.calcular(s, cat.id);
     const nJ = s.fixture[cat.id].jornadas.length;
     const nombre = (n) => esc(RM.q.nombrePorNumero(cat.id, n));
+    // Avatares pequeños de la pareja (o trío); si el equipo ya no existe no se muestra nada
+    const avatares = (n) => {
+      const e = RM.q.equipoPorNumero(cat.id, n);
+      return e ? `<span class="avatares">${e.jugadores.map(RM.q.jugador).filter(Boolean).map((j) => RM.perfil.avatarHTML(j, cat, 'sm')).join('')}</span> ` : '';
+    };
     const pendientes = t.empates.filter((e) => !e.resuelto);
 
     const filas = t.lista.map((f, i) => {
@@ -45,7 +50,7 @@
       }).join('');
       return `<tr>
         <td class="pos">${i + 1}</td>
-        <th scope="row"><b class="num-badge">${f.num}</b> ${nombre(f.num)}</th>
+        <th scope="row"><b class="num-badge">${f.num}</b> ${avatares(f.num)}${nombre(f.num)}</th>
         <td>${f.pj}</td>${celdas}
         <td>${f.sf}-${f.sc} <small>(${ds > 0 ? '+' : ''}${ds})</small></td>
         <td class="total">${f.pts}</td>
