@@ -78,6 +78,10 @@ Las fotos son una simulación. Antes del campeonato conviene probar también con
 
 Para comprobar que las pruebas detectan errores, se introdujeron errores a propósito en una copia del código: dar 3 puntos por un 2-1, dar 1 punto al ausente en un W.O., ignorar el desempate, quitar la rotación del fixture o de los horarios, o cambiar un signo en la perspectiva. En todos los casos la suite falló. Con el escaneo se hizo lo mismo: un umbral demasiado bajo (19 lecturas incorrectas), uno demasiado alto (no lee bolígrafo azul ni lápiz), las esquinas del QR cruzadas (20 planillas rechazadas) y un lector que no se ajusta a la luz de la foto (4 lecturas incorrectas con poca luz o sombra). El banco detectó cada uno.
 
+## Método de trabajo
+
+Las mejoras se desarrollan **guiadas por especificaciones**: antes de programar se escribe en [`specs/`](specs/) qué se quiere, cómo se va a comprobar (criterios de aceptación) y en qué tareas se divide. Una persona aprueba la especificación, se implementa con sus pruebas y el cambio se revisa con tres enfoques en paralelo (reglas del campeonato, calidad del código y pruebas en la app real) antes de aprobarlo y subirlo. El detalle está en [`specs/README.md`](specs/README.md).
+
 ## Datos
 
 Los datos se guardan automáticamente en el navegador (`localStorage`). Con los botones de la cabecera se puede **descargar un respaldo `.json`** y **volver a cargarlo**. Así también se pasa el campeonato a otra computadora.
