@@ -8,7 +8,13 @@
 const path = require('path');
 
 globalThis.window = globalThis;
-['utils.js', 'store.js', 'fixture.js', 'programacion.js', 'tabla.js', 'planilla.js']
+// localStorage en memoria: el store vuelve al estado anterior si no puede guardar, así que necesita uno que funcione
+const guardado = new Map();
+Object.defineProperty(globalThis, 'localStorage', {
+  configurable: true,
+  value: { getItem: (k) => (guardado.has(k) ? guardado.get(k) : null), setItem: (k, v) => { guardado.set(k, String(v)); }, removeItem: (k) => { guardado.delete(k); } }
+});
+['utils.js', 'perfil.js', 'store.js', 'fixture.js', 'programacion.js', 'tabla.js', 'planilla.js']
   .forEach((f) => require(path.join(__dirname, '..', 'js', f)));
 
 const RM = window.RM;

@@ -15,6 +15,7 @@ css/
   print.css           Estilos de impresión
 js/
   utils.js            Utilidades: fechas, íconos, avisos, búsqueda
+  perfil.js           Foto del jugador (recorte, validación) y avatar compartido por las vistas
   store.js            Datos: guardado en localStorage, consultas, respaldo JSON
   fixture.js          Generador "todos contra todos" (método circular) y validación
   programacion.js     Reparto de partidos en horarios y canchas (intercalado y rotación justa)
@@ -24,7 +25,7 @@ js/
   app.js              Arranque y navegación entre pestañas (#/campeonato…)
   views/
     campeonato.js     Configuración: datos, día de juego, canchas, categorías
-    jugadores.js      Registro, edición, búsqueda y filtros de jugadores
+    jugadores.js      Registro, edición, foto, búsqueda y filtros de jugadores
     equipos.js        Armado de equipos por categoría y sorteo de números
     fixture.js        Tabla del fixture por categoría (números o nombres)
     programacion.js   Jornadas por horario y cancha, intercambio manual y reporte de equidad
@@ -38,6 +39,7 @@ pruebas/
   programacion.test.js  Canchas y horarios: sin choques, huecos al final, intercalado, rotación justa
   planilla.test.js    Texto del QR, perspectiva de la foto y lectura de los círculos
   datos.test.js       Fechas de las jornadas, textos, respaldos y consultas
+  perfil.test.js      Recorte y validación de la foto, respaldos viejos, avatar y aviso de espacio lleno
   escaneo.html        Banco de pruebas del escaneo: fotos sintéticas de planillas llenas (se abre en el navegador)
   escaneo.js          Generador de las fotos (hoja, marcas a mano y condiciones de la foto) y casos esperados
 ```
@@ -85,6 +87,12 @@ Las mejoras se desarrollan **guiadas por especificaciones**: antes de programar 
 ## Datos
 
 Los datos se guardan automáticamente en el navegador (`localStorage`). Con los botones de la cabecera se puede **descargar un respaldo `.json`** y **volver a cargarlo**. Así también se pasa el campeonato a otra computadora.
+
+### Foto de los jugadores
+
+Cada jugador puede tener una **foto opcional** (botón "Elegir foto" en el formulario; en el celular también permite usar la cámara). La app la recorta al centro y la reduce a 160 × 160 px en JPEG (unos 10 KB) antes de guardarla, y se puede quitar con "Quitar foto". Sin foto se ve el **perfil por defecto**: las iniciales con el color de su categoría. El avatar aparece en Jugadores, Equipos y la Tabla de posiciones; no sale en las planillas ni al imprimir la tabla.
+
+El navegador guarda unos 5 MB por página: alcanza para cientos de fotos, pero si se llena, la app avisa que no pudo guardar (quita fotos o exporta un respaldo). Las fotos viajan **dentro del respaldo `.json`**: compártelo solo con quien corresponda. Los respaldos anteriores a esta función cargan sin problema y sus jugadores quedan con el perfil por defecto.
 
 ## Reglas del campeonato
 

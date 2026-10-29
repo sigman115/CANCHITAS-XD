@@ -68,7 +68,7 @@
       <span class="team-num" aria-label="Número ${e.numero}">${e.numero}</span>
       <div class="team-info">
         <strong>${nombre}</strong>
-        <small>${js.map((j, i) => esc(RM.q.nombreCompleto(j)) + (i === 2 ? ' <em>relevo</em>' : '')).join(' · ')}</small>
+        <small>${js.map((j, i) => RM.perfil.avatarHTML(j, RM.q.categoria(e.categoriaId), 'sm') + esc(RM.q.nombreCompleto(j)) + (i === 2 ? ' <em>relevo</em>' : '')).join(' · ')}</small>
       </div>
       <button class="del" type="button" data-act="delTeam" data-id="${e.id}" aria-label="Deshacer el equipo ${nombre}">${icon('trash')}</button>
     </li>`;

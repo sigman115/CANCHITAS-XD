@@ -63,7 +63,10 @@
     e.target.value = '';
     if (!f || !confirm('Se reemplazarán los datos actuales por los del archivo. ¿Continuar?')) return;
     f.text().then((txt) => {
-      try { RM.store.importar(txt); RM.toast('Respaldo cargado'); } catch (err) { RM.toast(err.message, true); }
+      try {
+        const ok = RM.store.importar(txt);
+        RM.toast(ok ? 'Respaldo cargado' : RM.store.SIN_ESPACIO, !ok);
+      } catch (err) { RM.toast(err.message, true); }
     });
   });
 

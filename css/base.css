@@ -26,6 +26,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);line-height:
 a{color:var(--lime)}
 button,input,select{font:inherit;color:inherit}
 .wrap{width:min(1180px,100% - 32px);margin-inline:auto}
+[hidden]{display:none!important}
 .sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
 h2{font-family:var(--display);font-size:clamp(1.7rem,4vw,2.6rem);letter-spacing:-1px;line-height:1.05}
 h3{font-size:1.05rem}

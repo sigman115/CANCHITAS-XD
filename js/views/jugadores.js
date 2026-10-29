@@ -5,12 +5,8 @@
   const { esc, icon } = RM;
 
   // Estado de la interfaz (no se guarda)
-  const ui = { editId: null, busqueda: '', filtro: 'todas', ultimaCat: '', enfocar: false };
-
-  const iniciales = (j) => {
-    const a = (j.apellidos || '').replace(/^[A-Z]\./i, '');
-    return ((j.nombres || '')[0] || '') + (a[0] || '') || '?';
-  };
+  // foto: foto pendiente del formulario (no entra al estado hasta guardar); fotoDe: a qué formulario pertenece
+  const ui = { editId: null, busqueda: '', filtro: 'todas', ultimaCat: '', enfocar: false, foto: '', fotoDe: null };
 
   function render(el) {
     const s = RM.store.state;
@@ -19,6 +15,9 @@
     if (!ed) ui.editId = null;
     const v = ed || { nombres: '', apellidos: '', ci: '', celular: '', categoria: ui.ultimaCat };
     const catSel = RM.q.categoria(v.categoria) ? v.categoria : '';
+    // Al abrir otro formulario (nuevo o editar a otro jugador) la foto pendiente parte de la guardada
+    const form = ui.editId || 'nuevo';
+    if (ui.fotoDe !== form) { ui.foto = ed ? ed.foto || '' : ''; ui.fotoDe = form; }
 
     el.innerHTML = `
       <section class="page-head">
@@ -43,6 +42,13 @@
               ${cats.map((c) => `<input type="radio" name="cat" id="cat-${c.id}" value="${c.id}" ${catSel === c.id ? 'checked' : ''}><label for="cat-${c.id}" style="--cat:${esc(c.color)}">${esc(c.nombre)}</label>`).join('')}
             </div>
           </fieldset>
+          <label for="jFoto">Foto (opcional)</label>
+          <div class="foto-campo">
+            <span id="jFotoVista">${fotoVista(v, catSel)}</span>
+            <input class="sr-only" type="file" id="jFoto" accept="image/*">
+            <button class="btn sm" type="button" id="jFotoElegir">${icon('camera')} Elegir foto</button>
+            <button class="btn sm" type="button" id="jFotoQuitar" ${ui.foto ? '' : 'hidden'}>${icon('trash')} Quitar foto</button>
+          </div>
           <p class="error" id="jErr" role="alert"></p>
           <div class="form-actions">
             <button class="btn primary" type="submit">${ed ? `${icon('check')} Guardar cambios` : `${icon('plus')} Agregar`}</button>
@@ -94,7 +100,7 @@
       const eq = RM.q.equipoDeJugador(j.id);
       const nom = esc(RM.q.nombreCompleto(j));
       return `<li class="player" ${cat ? `style="--cat:${esc(cat.color)}"` : ''}>
-        <span class="avatar ${cat ? '' : 'nocat'}">${esc(iniciales(j).toUpperCase())}</span>
+        ${RM.perfil.avatarHTML(j, cat)}
         <div class="info">
           <div class="name" title="${nom}">${nom}</div>
           <div class="meta">
@@ -109,7 +115,54 @@
     }).join('');
   }
 
+  // Vista previa del formulario: la foto pendiente, o el perfil por defecto si no hay
+  const fotoVista = (v, catId) => RM.perfil.avatarHTML({ ...v, foto: ui.foto }, RM.q.categoria(catId));
+
+  /*
+    Lee la imagen elegida y la reduce a LADO×LADO en JPEG recortando el cuadrado central,
+    para que una foto de celular (varios MB) quepa en localStorage (~10 KB).
+    Funciona con file:// porque la imagen viene del equipo del usuario, no de otro origen.
+    Se abre con la misma lectura que el escaneo de planillas (URL temporal, sin copiar el archivo en base64).
+  */
+  async function reducirFoto(file) {
+    if (!file || !/^image\//.test(file.type)) throw new Error('El archivo no es una imagen.');
+    const img = await RM.planilla.cargarImagen(file);
+    const L = RM.perfil.LADO;
+    const { sx, sy, lado } = RM.perfil.recorteCentrado(img.naturalWidth, img.naturalHeight);
+    const canvas = document.createElement('canvas');
+    canvas.width = L;
+    canvas.height = L;
+    canvas.getContext('2d').drawImage(img, sx, sy, lado, lado, 0, 0, L, L);
+    const url = canvas.toDataURL('image/jpeg', RM.perfil.CALIDAD);
+    if (!RM.perfil.fotoValida(url)) throw new Error('No se pudo reducir la imagen.');
+    return url;
+  }
+
+  function bindFoto(el) {
+    const input = RM.$('#jFoto', el);
+    const quitar = RM.$('#jFotoQuitar', el);
+    const err = RM.$('#jErr', el);
+    // Redibuja solo la vista previa para no perder lo que ya se escribió en el formulario
+    const pintar = () => {
+      const v = { nombres: RM.$('#jNom', el).value, apellidos: RM.$('#jApe', el).value };
+      const cat = (RM.$('input[name="cat"]:checked', el) || {}).value || '';
+      RM.$('#jFotoVista', el).innerHTML = fotoVista(v, cat);
+      quitar.hidden = !ui.foto;
+    };
+    RM.$('#jFotoElegir', el).addEventListener('click', () => input.click());
+    input.addEventListener('change', () => {
+      const file = input.files[0];
+      input.value = '';
+      if (!file) return;
+      reducirFoto(file)
+        .then((url) => { ui.foto = url; err.textContent = ''; pintar(); })
+        .catch((e) => { err.textContent = e.message; });
+    });
+    quitar.addEventListener('click', () => { ui.foto = ''; pintar(); });
+  }
+
   function bind(el) {
+    bindFoto(el);
     const form = RM.$('#fJug', el);
     form.addEventListener('submit', (e) => {
       e.preventDefault();
@@ -154,7 +207,8 @@
       apellidos: RM.limpiar(fd.get('apellidos')).toUpperCase(),
       ci: RM.limpiar(fd.get('ci')),
       celular: RM.limpiar(fd.get('celular')),
-      categoria: fd.get('cat') || ''
+      categoria: fd.get('cat') || '',
+      foto: ui.foto
     };
     if (d.apellidos.length < 2) { err.textContent = 'Escribe al menos el apellido (2 letras o más).'; RM.$('#jApe', el).focus(); return; }
     const otros = s.jugadores.filter((j) => j.id !== ui.editId);
@@ -166,18 +220,33 @@
       const eq = RM.q.equipoDeJugador(id);
       const cambiaCat = eq && eq.categoriaId !== d.categoria;
       if (cambiaCat && !confirm(`Está en el equipo ${RM.q.nombreEquipo(eq)}. Si cambias su categoría saldrá de ese equipo. ¿Continuar?`)) return;
-      ui.editId = null;
-      RM.store.commit((st) => {
+      const ok = guardarSinPerder((st) => {
         if (cambiaCat) RM.ops.quitarJugador(st, id);
         Object.assign(st.jugadores.find((j) => j.id === id), d);
       });
+      if (!ok) return;
+      ui.editId = null;
+      ui.fotoDe = null;
+      RM.app.render();
       RM.toast('Datos actualizados');
     } else {
+      if (!guardarSinPerder((st) => st.jugadores.push({ id: RM.uid(), ...d }))) return;
       ui.ultimaCat = d.categoria;
       ui.enfocar = true;
-      RM.store.commit((st) => st.jugadores.push({ id: RM.uid(), ...d }));
+      ui.fotoDe = null;
+      RM.app.render();
       RM.toast(`${RM.q.nombreCompleto(d)} inscrito`);
     }
+  }
+
+  /*
+    Guarda sin redibujar. Si no hay espacio, el store vuelve al estado anterior y el formulario
+    queda tal cual (modo edición y foto incluidos) para quitar la foto y reintentar sin reescribir.
+  */
+  function guardarSinPerder(fn) {
+    const ok = RM.store.commit(fn, { silent: true, deshacerSiFalla: true });
+    if (!ok) RM.toast(RM.store.SIN_ESPACIO, true);
+    return ok;
   }
 
   function cargarDemo() {

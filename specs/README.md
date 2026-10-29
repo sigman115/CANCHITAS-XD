@@ -36,6 +36,6 @@ Pedido ─▶ Especificación ─▶ ✋ Aprobación ─▶ Implementación ─�
 
 | N.º | Mejora | Estado |
 |---|---|---|
-| — | (todavía ninguna) | — |
+| 001 | [Perfiles personalizados de jugadores](001-perfiles-jugadores/) | implementada |
 
 Plantilla: [`_plantilla/`](_plantilla/).

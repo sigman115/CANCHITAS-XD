@@ -60,8 +60,15 @@ select.input{cursor:pointer}
 .players{list-style:none;display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:10px}
 .player{display:flex;align-items:center;gap:10px;padding:12px;border-radius:14px;background:var(--bg2);border:1px solid var(--line);border-left:4px solid var(--cat,var(--line));animation:pop .3s ease}
 @keyframes pop{from{opacity:0;transform:scale(.96)}}
-.avatar{width:40px;height:40px;border-radius:12px;display:grid;place-items:center;font-weight:800;font-size:.85rem;color:#0b0d12;background:var(--cat);flex-shrink:0}
+.avatar{width:40px;height:40px;border-radius:12px;display:grid;place-items:center;font-weight:800;font-size:.85rem;color:#0b0d12;background:var(--cat);flex-shrink:0;overflow:hidden}
 .avatar.nocat{background:var(--card);color:var(--muted);border:1px solid var(--line)}
+.avatar img{width:100%;height:100%;object-fit:cover;display:block}
+.avatar.sm{display:inline-grid;width:20px;height:20px;border-radius:6px;font-size:.55rem;vertical-align:middle;margin-right:4px}
+.avatares{display:inline-flex;vertical-align:middle;margin-right:4px}
+.avatares .avatar.sm{margin-right:0;box-shadow:0 0 0 2px var(--card)}
+.avatares .avatar.sm+.avatar.sm{margin-left:-6px}
+.foto-campo{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.foto-campo .avatar{width:64px;height:64px;border-radius:16px;font-size:1.2rem}
 .player .info{flex:1;min-width:0}
 .player .name{font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .meta{display:flex;flex-wrap:wrap;gap:6px;align-items:center;font-size:.75rem;color:var(--muted);margin-top:4px}
